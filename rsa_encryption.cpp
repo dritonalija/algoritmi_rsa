@@ -1,14 +1,12 @@
 #include <iostream>
+#include <vector>
 #include <cmath>
-#include <random>
-
+#include <string>
 using namespace std;
 
-// Funksioni për të gjetur Faktorin më të Madh të Përbashkët (GCD)
-int gcd(int a, int b)
-{
-    while (b != 0)
-    {
+// Funksioni për të gjetur gcd (Përpjesëtuesin më të madh të përbashkët)
+int gcd(int a, int b) {
+    while (b != 0) {
         int t = b;
         b = a % b;
         a = t;
@@ -16,71 +14,80 @@ int gcd(int a, int b)
     return a;
 }
 
-// Funksioni për të gjeneruar çelësin publik dhe privat
-void generateKeys(int &n, int &e, int &d)
-{
-    // Zgjedhim dy numra të mëdhenj prim p dhe q
-    int p = 61;
-    int q = 53;
-    n = p * q;
-    int phi = (p - 1) * (q - 1);
-
-    // Zgjedhim një numër e të tillë që GCD(e, phi) = 1 dhe 1 < e < phi
-    e = 3;
-    while (e < phi && gcd(e, phi) != 1)
-    {
-        e++;
+// Funksioni për të gjetur modulo inverse
+int modInverse(int a, int m) {
+    for (int x = 1; x < m; x++) {
+        if ((a * x) % m == 1) return x;
     }
-
-    // Gjejmë d-in e tillë që (e * d) % phi = 1
-    d = 1;
-    while ((e * d) % phi != 1)
-    {
-        d++;
-    }
+    return -1;
 }
 
-// Funksioni për enkriptimin e mesazhit
-int encrypt(int message, int e, int n)
-{
-    int encryptedMessage = 1;
-    for (int i = 0; i < e; i++)
-    {
-        encryptedMessage = (encryptedMessage * message) % n;
+// Fuqizimi modular (a^b % c)
+long long modExp(long long base, long long exp, long long mod) {
+    long long result = 1;
+    base = base % mod;
+    while (exp > 0) {
+        if (exp % 2 == 1) result = (result * base) % mod;
+        exp = exp >> 1;
+        base = (base * base) % mod;
     }
-    return encryptedMessage;
+    return result;
 }
 
-// Funksioni për dekriptimin e mesazhit
-int decrypt(int encryptedMessage, int d, int n)
-{
-    int decryptedMessage = 1;
-    for (int i = 0; i < d; i++)
-    {
-        decryptedMessage = (decryptedMessage * encryptedMessage) % n;
+int main() {
+    // Hapat e gjenerimit të çelësave
+    int p = 61; // Numër i thjeshtë
+    int q = 53; // Numër i thjeshtë
+    int n = p * q; // Moduli
+    int phi = (p - 1) * (q - 1); // Totienti
+    int e = 17; // Eksponent publik (zgjedhur)
+    
+    while (gcd(e, phi) != 1) e++; // Gjej e që është relativisht prim me phi
+
+    int d = modInverse(e, phi); // Eksponent privat
+    if (d == -1) {
+        cout << "Nuk mund të gjendet invers modular." << endl;
+        return 1;
     }
-    return decryptedMessage;
-}
 
-int main()
-{
-    int n, e, d;
-    generateKeys(n, e, d);
+    cout << "Çelësi publik: (" << e << ", " << n << ")" << endl;
+    cout << "Çelësi privat: (" << d << ", " << n << ")" << endl;
 
-    cout << "Celesi publik (n, e): (" << n << ", " << e << ")" << endl;
-    cout << "Celesi privat (n, d): (" << n << ", " << d << ")" << endl;
+    // Prano mesazhin nga përdoruesi
+    string message;
+    cout << "Vendosni mesazhin që dëshironi të enkriptoni: ";
+    getline(cin, message);
 
-    // Mesazhi për enkriptim
-    int message;
-    cout << "Shkruani mesazhin (numër të thjeshtë) për enkriptim: ";
-    cin >> message;
+    vector<long long> encryptedMessage;
 
-    // Enkriptimi
-    int encryptedMessage = encrypt(message, e, n);
-    cout << "Mesazhi i enkriptuar: " << encryptedMessage << endl;
+    // Enkriptimi i mesazhit
+    for (char c : message) {
+        if (c == ' ') {
+            encryptedMessage.push_back(-1); // Ruaj hapësirat si -1
+        } else {
+            encryptedMessage.push_back(modExp((int)c, e, n)); // Enkripto çdo karakter
+        }
+    }
 
-    // Dekriptimi
-    int decryptedMessage = decrypt(encryptedMessage, d, n);
+    cout << "Mesazhi i enkriptuar: ";
+    for (auto val : encryptedMessage) {
+        if (val == -1)
+            cout << " ";
+        else
+            cout << val << " ";
+    }
+    cout << endl;
+
+    // Dekriptimi i mesazhit
+    string decryptedMessage = "";
+    for (auto val : encryptedMessage) {
+        if (val == -1) {
+            decryptedMessage += " "; // Rikupero hapësirën
+        } else {
+            decryptedMessage += (char)modExp(val, d, n); // Dekripto çdo karakter
+        }
+    }
+
     cout << "Mesazhi i dekriptuar: " << decryptedMessage << endl;
 
     return 0;
